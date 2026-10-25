@@ -12,7 +12,7 @@ from pathlib import Path
 import requests
 
 from anki_vocab.card import Card
-from anki_vocab.export import write_anki_csv, write_errors
+from anki_vocab.export import write_anki_csv, write_apkg, write_errors
 from anki_vocab.sources import cambridge, translate
 from anki_vocab.sources.vocabulary_com import VocabularyCom
 
@@ -75,7 +75,9 @@ def main(argv=None):
     parser = argparse.ArgumentParser(prog="anki_vocab", description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("input", help="text file with words (one per line or comma-separated); '-' for stdin")
-    parser.add_argument("-o", "--output", default="output/cards.csv", help="CSV for Anki (default: %(default)s)")
+    parser.add_argument("-o", "--output", default="output/cards.csv",
+                        help="output file: .csv for Anki's text import, .apkg for a ready deck (default: %(default)s)")
+    parser.add_argument("--deck", help="deck name for .apkg output (default: the output file name)")
     parser.add_argument("--tags", default="vocab", help="Anki tags for every card (space-separated)")
     parser.add_argument("--no-vocabulary", action="store_true", help="skip vocabulary.com (no browser needed)")
     parser.add_argument("--no-cambridge", action="store_true", help="skip Cambridge Dictionary")
@@ -100,7 +102,10 @@ def main(argv=None):
 
     out = Path(args.output)
     out.parent.mkdir(parents=True, exist_ok=True)
-    write_anki_csv(cards, out, tags=args.tags)
+    if out.suffix.lower() == ".apkg":
+        write_apkg(cards, out, deck_name=args.deck or out.stem, tags=args.tags)
+    else:
+        write_anki_csv(cards, out, tags=args.tags)
     print(f"\n{len(cards)}/{len(words)} cards written to {out}")
     if errors:
         err_path = out.with_name(out.stem + "_errors.csv")

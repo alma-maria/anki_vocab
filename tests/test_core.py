@@ -1,10 +1,12 @@
 import csv
+import sqlite3
+import zipfile
 
 import pytest
 
 from anki_vocab.card import Card
 from anki_vocab.cli import main, read_words
-from anki_vocab.export import write_anki_csv
+from anki_vocab.export import write_anki_csv, write_apkg
 from anki_vocab.sources import cambridge
 
 
@@ -54,3 +56,31 @@ def test_word_limit(tmp_path):
     words.write_text("\n".join(f"w{i}" for i in range(101)))
     with pytest.raises(SystemExit):
         main([str(words), "--no-vocabulary", "--no-cambridge", "--no-translate"])
+
+
+def _apkg_notes(path, tmp_path):
+    with zipfile.ZipFile(path) as z:
+        z.extract("collection.anki2", tmp_path)
+    db = sqlite3.connect(tmp_path / "collection.anki2")
+    try:
+        return db.execute("select guid, flds, tags from notes order by id").fetchall()
+    finally:
+        db.close()
+
+
+def test_apkg_contains_notes_with_tags(tmp_path):
+    path = tmp_path / "deck.apkg"
+    write_apkg([Card("timid", translation="робкий"), Card("zilch", short="nothing")], path,
+               deck_name="Test", tags="vocab book1")
+    notes = _apkg_notes(path, tmp_path)
+    assert [n[1].split("\x1f")[0] for n in notes] == ["timid", "zilch"]
+    assert "робкий" in notes[0][1]
+    assert notes[0][2].split() == ["vocab", "book1"]
+
+
+def test_apkg_guid_is_stable_per_word(tmp_path):
+    a, b = tmp_path / "a.apkg", tmp_path / "b.apkg"
+    write_apkg([Card("timid", short="v1")], a)
+    write_apkg([Card("timid", short="v2")], b)
+    (tmp_path / "a").mkdir(); (tmp_path / "b").mkdir()
+    assert _apkg_notes(a, tmp_path / "a")[0][0] == _apkg_notes(b, tmp_path / "b")[0][0]

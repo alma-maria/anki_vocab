@@ -3,3 +3,4 @@ requests>=2.31
 beautifulsoup4>=4.12
 deep-translator>=1.11
 pytest>=8.0
+genanki>=0.13
