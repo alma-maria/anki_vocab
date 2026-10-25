@@ -1,0 +1,4 @@
+# One word per line, or comma-separated. Up to 100 words. Lines starting with # are ignored.
+hearth
+punctilious
+vehemently
