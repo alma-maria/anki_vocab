@@ -45,7 +45,7 @@ def build_cards(words, use_vocab=True, use_cambridge=True, use_translate=True, u
 
             if use_translate:
                 try:
-                    card.translation = translate.lookup(word)
+                    card.translation = translate.lookup(word, session=session)
                 except Exception as e:
                     errors.append((word, "translate", _msg(e)))
             if use_cambridge:
